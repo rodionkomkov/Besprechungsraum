@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Besprechungsraum buchen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Archivo+Narrow:wght@500;600&display=swap" rel="stylesheet">
+<script>
+/* Theme vor dem ersten Zeichnen setzen, damit nichts flackert */
+try{const t=localStorage.getItem("rb-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}
+</script>
+<style>
+:root{color-scheme:light dark;
+ --bg:light-dark(#f4f2ee,#111318);--card:light-dark(#ffffff,#1a1d24);--ink:light-dark(#1b1f2a,#eceae6);
+ --mute:light-dark(#6b6f78,#9a9ea8);--line:light-dark(#e3e0da,#2a2e37);--free:light-dark(#fbfaf8,#161920);
+ --red:#d7263d;--red2:#b81d31;--head:light-dark(#1b1f2a,#08090c);--headink:#f4f2ee}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip;min-height:100vh}
+header{background:var(--head);color:var(--headink);border-bottom:1px solid var(--line);padding:clamp(22px,3.5vw,44px) max(5vw,16px) 22px}
+.top{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;gap:18px 32px;align-items:end;justify-content:space-between}
+.sign small{font:600 15px 'Archivo Narrow',sans-serif;opacity:.7}
+h1{margin:2px 0 0;font-weight:800;font-size:clamp(32px,5vw,50px);line-height:1.05;text-wrap:balance}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.nav b{font:600 17px 'Archivo Narrow',sans-serif;padding:0 8px;white-space:nowrap}
+button{font:inherit;cursor:pointer;border-radius:10px;min-height:44px}
+button:disabled{cursor:not-allowed}
+.ghost{background:transparent;color:inherit;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent);padding:0 14px;font-weight:700}
+.ghost:hover{border-color:currentColor}
+.ico{display:inline-flex;align-items:center;gap:8px}
+.ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.me{max-width:1240px;margin:18px auto 0;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:15px}
+.me .who{opacity:.8}
+.me input{width:110px;text-transform:uppercase;font:700 16px Archivo;background:transparent;color:inherit;border:1.5px solid color-mix(in srgb,currentColor 35%,transparent);border-radius:10px;padding:9px 12px}
+.legend{display:flex;gap:16px;margin-inline-start:auto;opacity:.85}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-inline-end:6px}
+main{padding:clamp(18px,3vw,40px) max(5vw,16px) 48px}
+.wrap{max-width:1240px;margin:0 auto}
+.status{font-size:14px;color:var(--mute);margin:0 0 14px}
+.status.warn{color:var(--red)}
+.grid{display:grid;grid-template-columns:118px repeat(5,minmax(0,1fr));gap:6px}
+.dh{padding:6px 10px 10px;font-weight:700;font-size:15px}
+.dh span{display:block;font:500 13px 'Archivo Narrow';color:var(--mute)}
+.dh.now,.dh.now span{color:var(--red)}
+.tm{padding:10px 8px 10px 0;text-align:right;font:600 15px/1.25 'Archivo Narrow';white-space:nowrap}
+.tm span{display:block;color:var(--mute);font-weight:500;font-size:13px}
+.slot{position:relative;border:1.5px solid var(--line);background:var(--free);color:var(--mute);min-height:62px;padding:8px 10px;text-align:left;font-size:13px;transition:transform .12s,background .12s,border-color .12s}
+.slot:hover{border-color:var(--ink);color:var(--ink)}
+.slot.past{opacity:.45}
+.slot.busy{background:var(--red);border-color:var(--red);color:#fff;display:flex;align-items:center;justify-content:center}
+.slot.busy:hover{background:var(--red2)}
+.slot.busy strong{font:800 clamp(18px,2vw,24px)/1 Archivo;letter-spacing:.02em}
+.slot.mine{box-shadow:inset 0 0 0 3px #fff6}
+.slot.pop{animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.slot.pop{animation:none}.slot{transition:none}}
+.tabs{display:none}
+@media(max-width:760px){
+ .legend{margin-inline-start:0}
+ .tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px}
+ .tabs button{flex:1 0 auto;background:var(--card);color:var(--ink);border:1.5px solid var(--line);padding:6px 12px;font-weight:700;font-size:15px;line-height:1.2}
+ .tabs button span{display:block;font:500 12px 'Archivo Narrow';color:var(--mute)}
+ .tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+ .tabs button[aria-pressed=true] span{color:inherit;opacity:.7}
+ .grid{grid-template-columns:96px minmax(0,1fr)}
+ .grid .dh{display:none}
+ .grid .slot:not(.on){display:none}
+}
+/* Login */
+.auth{max-width:440px;margin:clamp(20px,6vh,70px) auto;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px}
+.auth h2{margin:0 0 6px;font-size:28px;line-height:1.1}
+.auth p{margin:0 0 18px;color:var(--mute)}
+.seg{display:flex;gap:6px;margin-bottom:18px}
+.seg button{flex:1;background:transparent;color:var(--ink);border:1.5px solid var(--line);font-weight:700}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.f{display:block;margin-bottom:14px}
+.f span{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+.f input{width:100%;font:500 16px Archivo;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--free);color:var(--ink)}
+.f input.k{text-transform:uppercase;font-weight:800;letter-spacing:.04em}
+.link{background:none;border:0;color:var(--mute);text-decoration:underline;padding:0;min-height:auto;font-size:14px}
+.ok{color:#2a8a4a;font-size:14px;min-height:20px;margin-top:8px}
+dialog{border:0;border-radius:16px;padding:0;width:min(420px,92vw);background:var(--card);color:var(--ink);box-shadow:0 30px 80px #0006}
+dialog::backdrop{background:#0008}
+.dlg{padding:24px}
+.dlg h2{margin:0 0 4px;font-size:24px;line-height:1.15}
+.dlg p{margin:0 0 16px;color:var(--mute)}
+.dlg input{width:100%;font:800 28px Archivo;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;border:2px solid var(--line);border-radius:12px;background:var(--free);color:var(--ink)}
+.big{display:inline-flex;align-items:center;justify-content:center;min-width:120px;height:120px;padding:0 20px;border-radius:14px;background:var(--red);color:#fff;font:800 44px Archivo;margin-bottom:14px}
+.row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.btn{padding:0 18px;font-weight:700;border:1.5px solid var(--line);background:transparent;color:var(--ink)}
+.btn.p{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.r{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.w{width:100%}
+.err{color:var(--red);font-size:14px;min-height:20px;margin-top:8px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+ <div class="top">
+  <div class="sign"><small>Raumbuchung</small><h1>Besprechungsraum</h1></div>
+  <div class="nav">
+   <span id="weeknav" hidden style="display:contents">
+    <button class="ghost" id="prev" aria-label="Vorige Woche">←</button>
+    <b id="wk">KW</b>
+    <button class="ghost" id="next" aria-label="Nächste Woche">→</button>
+    <button class="ghost" id="today">Heute</button>
+   </span>
+   <button class="ghost ico" id="theme"></button>
+  </div>
+ </div>
+ <div class="me" id="bar" hidden>
+  <span class="who" id="who"></span>
+  <label for="me">Mein Kürzel</label>
+  <input id="me" maxlength="5" autocomplete="off">
+  <button class="ghost" id="logout">Abmelden</button>
+  <div class="legend"><span><i style="background:var(--free);border:1.5px solid #8885"></i>frei</span><span><i style="background:var(--red)"></i>gebucht</span></div>
+ </div>
+</header>
+
+<main>
+ <div class="wrap">
+  <p class="status" id="status">Wird geladen …</p>
+
+  <!-- Anmeldung -->
+  <section class="auth" id="auth" hidden>
+   <h2 id="authTitle">Anmelden</h2>
+   <p>Melde dich an, um den Besprechungsraum zu buchen.</p>
+   <div class="seg"><button type="button" id="tLogin" aria-pressed="true">Anmelden</button><button type="button" id="tReg" aria-pressed="false">Registrieren</button></div>
+   <form id="authForm" novalidate>
+    <label class="f"><span>E-Mail</span><input id="email" type="email" autocomplete="email" required></label>
+    <label class="f"><span>Passwort</span><input id="pw" type="password" autocomplete="current-password" required minlength="6"></label>
+    <label class="f" id="kWrap" hidden><span>Kürzel (max. 5 Zeichen, erscheint im Kalender)</span><input id="regK" class="k" maxlength="5" autocomplete="off"></label>
+    <button class="btn p w" id="authBtn" type="submit">Anmelden</button>
+    <div class="err" id="authErr"></div><div class="ok" id="authOk"></div>
+    <button class="link" type="button" id="forgot">Passwort vergessen?</button>
+   </form>
+  </section>
+
+  <!-- Kalender -->
+  <section id="cal" hidden>
+   <div class="tabs" id="tabs"></div>
+   <div class="grid" id="grid"></div>
+  </section>
+ </div>
+</main>
+
+<dialog id="dlg"><form class="dlg" id="form" method="dialog"></form></dialog>
+
+<script type="module">
+/* ====== HIER DEINE FIREBASE-KONFIGURATION EINFÜGEN ======
+   Firebase-Konsole → Projekteinstellungen → Allgemein → „Deine Apps“ → Web-App → Konfiguration */
+const firebaseConfig = {
+  apiKey: "AIzaSyD6IDFtLTjb-OdU0sNOQImZdU6dvQmcFLY",
+  authDomain: "besprechungsraum-83bc4.firebaseapp.com",
+  projectId: "besprechungsraum-83bc4",
+  storageBucket: "besprechungsraum-83bc4.firebasestorage.app",
+  messagingSenderId: "172720011731",
+  appId: "1:172720011731:web:6b9d9e04c0b46f80641726"
+};
+/* ======================================================== */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, deleteDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const SLOTS=[["07:45","08:30"],["08:30","09:15"],["09:15","10:20"],["10:20","11:05"],["11:05","12:10"],["12:10","13:00"],["13:00","13:45"],["13:45","14:20"],["14:20","15:00"],["15:00","16:00"]];
+const DAYS=["Mo","Di","Mi","Do","Fr"],DAYL=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const monday=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-(x.getDay()+6)%7);return x};
+const kw=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)};
+const fmt=d=>pad(d.getDate())+"."+pad(d.getMonth()+1)+".";
+const cleanK=v=>String(v||"").toUpperCase().replace(/\s/g,"").slice(0,5);
+const st=$("#status");
+const setStatus=(t,warn)=>{st.textContent=t;st.className="status"+(warn?" warn":"")};
+
+/* ---------- Hell / Dunkel ---------- */
+const SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+const MOON='<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+const root=document.documentElement;
+const curTheme=()=>{const a=root.getAttribute("data-theme");return a==="dark"||a==="light"?a:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")};
+function applyTheme(t){root.setAttribute("data-theme",t);$("#theme").innerHTML=t==="dark"?SUN+"Hell":MOON+"Dunkel";$("#theme").setAttribute("aria-label",t==="dark"?"Zum hellen Modus wechseln":"Zum dunklen Modus wechseln")}
+applyTheme(curTheme());
+$("#theme").addEventListener("click",()=>{const t=curTheme()==="dark"?"light":"dark";applyTheme(t);try{localStorage.setItem("rb-theme",t)}catch(e){}});
+
+/* ---------- Firebase ---------- */
+if(firebaseConfig.apiKey.includes("HIER")){
+  setStatus("Firebase ist noch nicht eingerichtet: Bitte die Konfiguration oben in index.html einfügen (siehe ANLEITUNG.md).",true);
+  throw new Error("Firebase-Konfiguration fehlt");
+}
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);auth.languageCode="de";
+const fs=getFirestore(app);
+
+let user=null,myK="",isAdmin=false,book={},unsub=null,lastNew=null,cur=null;
+let week=monday(new Date()),day=Math.min((new Date().getDay()+6)%7,4);
+
+/* ---------- Anmeldung ---------- */
+let mode="login";
+function setMode(m){mode=m;$("#tLogin").setAttribute("aria-pressed",m==="login");$("#tReg").setAttribute("aria-pressed",m==="reg");
+ $("#kWrap").hidden=m!=="reg";$("#authTitle").textContent=m==="reg"?"Registrieren":"Anmelden";$("#authBtn").textContent=m==="reg"?"Konto anlegen":"Anmelden";
+ $("#pw").autocomplete=m==="reg"?"new-password":"current-password";$("#authErr").textContent="";$("#authOk").textContent=""}
+$("#tLogin").addEventListener("click",()=>setMode("login"));
+$("#tReg").addEventListener("click",()=>setMode("reg"));
+$("#regK").addEventListener("input",e=>e.target.value=cleanK(e.target.value));
+const authMsg=e=>{const c=e&&e.code||"";return({
+ "auth/invalid-email":"Die E-Mail-Adresse ist ungültig.",
+ "auth/invalid-credential":"E-Mail oder Passwort ist falsch.",
+ "auth/wrong-password":"E-Mail oder Passwort ist falsch.",
+ "auth/user-not-found":"Zu dieser E-Mail gibt es kein Konto.",
+ "auth/email-already-in-use":"Zu dieser E-Mail gibt es schon ein Konto – bitte anmelden.",
+ "auth/weak-password":"Das Passwort muss mindestens 6 Zeichen haben.",
+ "auth/too-many-requests":"Zu viele Versuche. Bitte kurz warten.",
+ "auth/network-request-failed":"Keine Internetverbindung."
+})[c]||("Fehler: "+(e&&e.message||e))};
+$("#authForm").addEventListener("submit",async e=>{
+ e.preventDefault();$("#authErr").textContent="";$("#authOk").textContent="";
+ const email=$("#email").value.trim(),pw=$("#pw").value,k=cleanK($("#regK").value);
+ if(!email||!pw){$("#authErr").textContent="Bitte E-Mail und Passwort eingeben.";return}
+ if(mode==="reg"&&!k){$("#authErr").textContent="Bitte ein Kürzel eingeben.";return}
+ $("#authBtn").disabled=true;
+ try{
+  if(mode==="reg"){const c=await createUserWithEmailAndPassword(auth,email,pw);await setDoc(doc(fs,"users",c.user.uid),{k,email});myK=k;$("#me").value=k}
+  else await signInWithEmailAndPassword(auth,email,pw);
+ }catch(err){$("#authErr").textContent=authMsg(err)}
+ $("#authBtn").disabled=false;
+});
+$("#forgot").addEventListener("click",async()=>{
+ const email=$("#email").value.trim();$("#authErr").textContent="";$("#authOk").textContent="";
+ if(!email){$("#authErr").textContent="Bitte zuerst oben deine E-Mail eintragen.";return}
+ try{await sendPasswordResetEmail(auth,email);$("#authOk").textContent="E-Mail zum Zurücksetzen wurde verschickt."}catch(err){$("#authErr").textContent=authMsg(err)}
+});
+$("#logout").addEventListener("click",()=>signOut(auth));
+
+onAuthStateChanged(auth,async u=>{
+ user=u;
+ if(unsub){unsub();unsub=null}
+ if(!u){book={};$("#auth").hidden=false;$("#cal").hidden=true;$("#bar").hidden=true;$("#weeknav").hidden=true;setStatus("");return}
+ $("#auth").hidden=true;$("#cal").hidden=false;$("#bar").hidden=false;$("#weeknav").hidden=false;
+ $("#who").textContent=u.email;
+ try{const p=await getDoc(doc(fs,"users",u.uid));if(p.exists())myK=p.data().k||myK}catch(e){}
+ try{isAdmin=(await getDoc(doc(fs,"admins",u.uid))).exists()}catch(e){isAdmin=false}
+ $("#me").value=myK;
+ render();subscribe();
+});
+$("#me").addEventListener("input",e=>e.target.value=cleanK(e.target.value));
+$("#me").addEventListener("change",async e=>{
+ const k=cleanK(e.target.value);if(!k||!user){e.target.value=myK;return}
+ try{await setDoc(doc(fs,"users",user.uid),{k,email:user.email},{merge:true});myK=k;setStatus("Kürzel gespeichert. Gilt für neue Buchungen.")}catch(err){setStatus("Kürzel konnte nicht gespeichert werden.",true)}
+});
+
+/* ---------- Buchungen ---------- */
+function dates(){return DAYS.map((_,i)=>{const d=new Date(week);d.setDate(d.getDate()+i);return d})}
+function isPast(d,s){const [h,m]=SLOTS[s][1].split(":");const e=new Date(d);e.setHours(+h,+m,0,0);return e<new Date()}
+function subscribe(){
+ if(unsub)unsub();
+ const ds=dates();setStatus("Buchungen werden geladen …");
+ const q=query(collection(fs,"bookings"),where("date",">=",iso(ds[0])),where("date","<=",iso(ds[4])));
+ unsub=onSnapshot(q,snap=>{
+  book={};snap.forEach(d=>{book[d.id]=d.data()});
+  setStatus("Live – Änderungen sehen alle sofort. Tippe auf einen freien Slot zum Buchen.");render();
+ },err=>setStatus("Buchungen konnten nicht geladen werden: "+err.message,true));
+}
+function render(){
+ const ds=dates(),t=iso(new Date());
+ $("#wk").textContent="KW "+kw(week)+" · "+fmt(ds[0])+"–"+fmt(ds[4]);
+ $("#tabs").innerHTML=ds.map((d,i)=>`<button data-day="${i}" aria-pressed="${i===day}">${DAYS[i]}<span>${fmt(d)}</span></button>`).join("");
+ let h=`<div></div>`+ds.map((d,i)=>`<div class="dh${iso(d)===t?" now":""}">${DAYL[i]}<span>${fmt(d)}${iso(d)===t?" · heute":""}</span></div>`).join("");
+ SLOTS.forEach((s,si)=>{
+  h+=`<div class="tm">${s[0]} – ${s[1]}<span>${si+1}. Stunde</span></div>`;
+  ds.forEach((d,di)=>{
+   const id=iso(d)+"_"+si,b=book[id],past=isPast(d,si);
+   const cls=(b?" busy":"")+(past?" past":"")+(b&&user&&b.uid===user.uid?" mine":"")+(id===lastNew?" pop":"")+(di===day?" on":"");
+   const lab=`${DAYL[di]} ${fmt(d)}, ${s[0]}–${s[1]}: `+(b?"gebucht von "+b.k:(past?"vorbei":"frei"));
+   h+=`<button class="slot${cls}" data-id="${id}" aria-label="${esc(lab)}">${b?`<strong>${esc(b.k)}</strong>`:(past?"":"frei")}</button>`;
+  });
+ });
+ $("#grid").innerHTML=h;lastNew=null;
+}
+function openSlot(id){
+ const [date,si]=id.split("_"),s=SLOTS[+si],d=new Date(date+"T12:00");
+ const when=`${DAYL[(d.getDay()+6)%7]}, ${fmt(d)} · ${s[0]}–${s[1]} Uhr`;
+ const b=book[id];cur=id;
+ if(!b&&isPast(d,+si)){setStatus("Dieser Zeitraum ist schon vorbei.",true);return}
+ const canDel=b&&user&&(b.uid===user.uid||isAdmin);
+ $("#form").innerHTML=b?
+  `<div class="big">${esc(b.k)}</div><h2>Gebucht</h2><p>${when}</p>
+   ${canDel?"":`<p style="font-size:14px">Nur ${esc(b.k)} oder ein Admin kann diese Buchung stornieren.</p>`}
+   <div class="err" id="err"></div>
+   <div class="row"><button class="btn" value="x">Schließen</button>${canDel?`<button class="btn r" id="del" type="button">Buchung stornieren</button>`:""}</div>`
+ :`<h2>Raum buchen</h2><p>${when}</p>
+   <label for="k" style="font-size:14px;color:var(--mute)">Kürzel</label>
+   <input id="k" maxlength="5" required autocomplete="off" value="${esc(myK)}">
+   <div class="err" id="err"></div>
+   <div class="row"><button class="btn" value="x" formnovalidate>Abbrechen</button><button class="btn p" type="submit" value="ok">Buchen</button></div>`;
+ $("#dlg").showModal();
+ const k=$("#k");if(k){k.focus();k.select();k.addEventListener("input",()=>k.value=cleanK(k.value))}
+ const del=$("#del");if(del)del.addEventListener("click",async()=>{
+  del.disabled=true;
+  try{await deleteDoc(doc(fs,"bookings",id));$("#dlg").close()}catch(e){$("#err").textContent="Stornieren nicht möglich.";del.disabled=false}
+ });
+}
+$("#form").addEventListener("submit",async e=>{
+ const sub=e.submitter;if(!sub||sub.value!=="ok")return;
+ e.preventDefault();
+ const k=cleanK($("#k").value);
+ if(!k){$("#err").textContent="Bitte ein Kürzel eingeben.";return}
+ if(book[cur]){$("#err").textContent="Dieser Slot wurde gerade schon gebucht.";return}
+ sub.disabled=true;
+ const [date,si]=cur.split("_");
+ try{
+  await setDoc(doc(fs,"bookings",cur),{k,date,slot:+si,uid:user.uid,email:user.email,at:serverTimestamp()});
+  lastNew=cur;$("#dlg").close();
+ }catch(err){
+  $("#err").textContent=err.code==="permission-denied"?"Dieser Slot ist schon belegt.":"Buchung fehlgeschlagen: "+err.message;sub.disabled=false;
+ }
+});
+$("#grid").addEventListener("click",e=>{const b=e.target.closest(".slot");if(b)openSlot(b.dataset.id)});
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-day]");if(b){day=+b.dataset.day;render()}});
+$("#prev").addEventListener("click",()=>{week.setDate(week.getDate()-7);render();subscribe()});
+$("#next").addEventListener("click",()=>{week.setDate(week.getDate()+7);render();subscribe()});
+$("#today").addEventListener("click",()=>{week=monday(new Date());day=Math.min((new Date().getDay()+6)%7,4);render();subscribe()});
+setInterval(()=>{if(user)render()},60000);
+</script>
+</body>
+</html>
