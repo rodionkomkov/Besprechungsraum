@@ -270,7 +270,7 @@ function render(){
  const ds=dates(),t=iso(new Date());
  $("#wk").textContent="KW "+kw(week)+" · "+fmt(ds[0])+"–"+fmt(ds[4]);
  $("#tabs").innerHTML=ds.map((d,i)=>`<button data-day="${i}" aria-pressed="${i===day}">${DAYS[i]}<span>${fmt(d)}</span></button>`).join("");
- let h=`<div></div>`+ds.map((d,i)=>`<div class="dh${iso(d)===t?" now":""}">${DAYL[i]}<span>${fmt(d)}${iso(d)===t?" · heute":""}</span></div>`).join("");
+ let h=`<div class="dh"></div>`+ds.map((d,i)=>`<div class="dh${iso(d)===t?" now":""}">${DAYL[i]}<span>${fmt(d)}${iso(d)===t?" · heute":""}</span></div>`).join("");
  SLOTS.forEach((s,si)=>{
   h+=`<div class="tm">${s[0]} – ${s[1]}<span>${si+1}. Stunde</span></div>`;
   ds.forEach((d,di)=>{
